@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLPI Lite - DEBUG MODE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .debug-box {
+            background: #1e293b;
+            color: #10b981;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error { color: #ef4444; }
+        .success { color: #10b981; }
+        .warning { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🔧 GLPI Lite - Debug Mode</h1>
+        
+        <!-- Debug Info Panel -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">System Status</h2>
+            <div id="debugOutput" class="debug-box">
+                Initializing...
+            </div>
+            <button onclick="runDiagnostics()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                <i class="fas fa-stethoscope mr-2"></i>Run Diagnostics
+            </button>
+            <button onclick="resetDatabase()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 ml-2">
+                <i class="fas fa-trash mr-2"></i>Reset Database
+            </button>
+            <button onclick="seedDemoData()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-2">
+                <i class="fas fa-seedling mr-2"></i>Add Demo Data
+            </button>
+        </div>
+
+        <!-- Quick Login Test -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Quick Login Test</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <button onclick="testLogin('admin@glpi-lite.com', 'admin')" class="p-4 border-2 border-blue-500 rounded-lg hover:bg-blue-50 text-center">
+                    <div class="font-bold text-blue-600">Admin</div>
+                    <div class="text-sm text-gray-600">admin@glpi-lite.com</div>
+                    <div class="text-xs text-gray-400">Password: admin</div>
+                </button>
+                <button onclick="testLogin('tech@glpi-lite.com', 'tech')" class="p-4 border-2 border-green-500 rounded-lg hover:bg-green-50 text-center">
+                    <div class="font-bold text-green-600">Tech</div>
+                    <div class="text-sm text-gray-600">tech@glpi-lite.com</div>
+                    <div class="text-xs text-gray-400">Password: tech</div>
+                </button>
+                <button onclick="testLogin('user@glpi-lite.com', 'user')" class="p-4 border-2 border-gray-500 rounded-lg hover:bg-gray-50 text-center">
+                    <div class="font-bold text-gray-600">User</div>
+                    <div class="text-sm text-gray-600">user@glpi-lite.com</div>
+                    <div class="text-xs text-gray-400">Password: user</div>
+                </button>
+            </div>
+            <div id="loginResult" class="mt-4 p-4 rounded-lg hidden"></div>
+        </div>
+
+        <!-- Current Users List -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4">Current Users in Database</h2>
+            <div id="usersList" class="space-y-2">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple IndexedDB setup
+        const DB_NAME = 'GLPI_Lite_DB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        // Demo users data
+        const demoUsers = [
+            { id: 1, firstName: 'Admin', lastName: 'System', email: 'admin@glpi-lite.com', password: 'admin', role: 'admin', department: 'IT' },
+            { id: 2, firstName: 'Tech', lastName: 'Support', email: 'tech@glpi-lite.com', password: 'tech', role: 'tech', department: 'IT' },
+            { id: 3, firstName: 'Jean', lastName: 'Dupont', email: 'user@glpi-lite.com', password: 'user', role: 'user', department: 'Production' },
+            { id: 4, firstName: 'Marie', lastName: 'Martin', email: 'marie.martin@company.com', password: 'pass123', role: 'user', department: 'RH' },
+            { id: 5, firstName: 'Pierre', lastName: 'Bernard', email: 'pierre.bernard@company.com', password: 'pass123', role: 'tech', department: 'IT' }
+        ];
+
+        function log(message, type = 'info') {
+            const debugOutput = document.getElementById('debugOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            debugOutput.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => {
+                    log('❌ Failed to open database: ' + request.error, 'error');
+                    reject(request.error);
+                };
+                
+                request.onsuccess = () => {
+                    db = request.result;
+                    log('✅ Database opened successfully', 'success');
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    log('📦 Creating object stores...', 'warning');
+                    
+                    if (!database.objectStoreNames.contains('users')) {
+                        const userStore = database.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
+                        userStore.createIndex('email', 'email', { unique: true });
+                        log('✅ Users store created', 'success');
+                    }
+                };
+            });
+        }
+
+        async function getAllUsers() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction('users', 'readonly');
+                const store = transaction.objectStore('users');
+                const request = store.getAll();
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function addUser(user) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction('users', 'readwrite');
+                const store = transaction.objectStore('users');
+                const request = store.add(user);
+                
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function clearUsers() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction('users', 'readwrite');
+                const store = transaction.objectStore('users');
+                const request = store.clear();
+                
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function runDiagnostics() {
+            log('🔍 Running diagnostics...', 'warning');
+            
+            try {
+                // Check if IndexedDB is supported
+                if (!window.indexedDB) {
+                    log('❌ IndexedDB not supported in this browser', 'error');
+                    return;
+                }
+                log('✅ IndexedDB is supported', 'success');
+                
+                // Initialize DB
+                await initDB();
+                
+                // Check users
+                const users = await getAllUsers();
+                log(`📊 Found ${users.length} users in database`, users.length > 0 ? 'success' : 'warning');
+                
+                users.forEach(u => {
+                    log(`   - ${u.email} (${u.role})`, 'info');
+                });
+                
+                updateUsersList(users);
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function seedDemoData() {
+            log('🌱 Adding demo users...', 'warning');
+            try {
+                for (const user of demoUsers) {
+                    try {
+                        await addUser(user);
+                        log(`✅ Added: ${user.email}`, 'success');
+                    } catch (e) {
+                        log(`⚠️ ${user.email} may already exist: ${e.message}`, 'warning');
+                    }
+                }
+                log('🎉 Demo data seeding complete!', 'success');
+                await runDiagnostics();
+            } catch (error) {
+                log('❌ Error seeding data: ' + error.message, 'error');
+            }
+        }
+
+        async function resetDatabase() {
+            if (confirm('Are you sure? This will delete ALL users!')) {
+                try {
+                    await clearUsers();
+                    log('🗑️ Database cleared', 'success');
+                    await runDiagnostics();
+                } catch (error) {
+                    log('❌ Error clearing database: ' + error.message, 'error');
+                }
+            }
+        }
+
+        async function testLogin(email, password) {
+            log(`🔑 Testing login: ${email}`, 'warning');
+            
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.classList.remove('hidden', 'bg-green-100', 'bg-red-100', 'text-green-800', 'text-red-800');
+            
+            try {
+                const users = await getAllUsers();
+                const user = users.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    log(`✅ Login successful: ${user.firstName} ${user.lastName} (${user.role})`, 'success');
+                    resultDiv.classList.add('bg-green-100', 'text-green-800');
+                    resultDiv.innerHTML = `<i class="fas fa-check-circle mr-2"></i><strong>Success!</strong> Logged in as ${user.firstName} ${user.lastName} (${user.role})`;
+                } else {
+                    // Check if email exists with wrong password
+                    const emailExists = users.find(u => u.email === email);
+                    if (emailExists) {
+                        log(`❌ Wrong password for ${email}`, 'error');
+                        resultDiv.classList.add('bg-red-100', 'text-red-800');
+                        resultDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i><strong>Wrong password!</strong> Email exists but password is incorrect.`;
+                    } else {
+                        log(`❌ Email not found: ${email}`, 'error');
+                        resultDiv.classList.add('bg-red-100', 'text-red-800');
+                        resultDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i><strong>Email not found!</strong> This user doesn't exist in the database.`;
+                    }
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+                resultDiv.classList.add('bg-red-100', 'text-red-800');
+                resultDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i><strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        function updateUsersList(users) {
+            const listDiv = document.getElementById('usersList');
+            if (users.length === 0) {
+                listDiv.innerHTML = '<div class="text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>No users found! Click "Add Demo Data" above.</div>';
+                return;
+            }
+            
+            listDiv.innerHTML = users.map(u => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <div class="font-medium">${u.firstName} ${u.lastName}</div>
+                        <div class="text-sm text-gray-600">${u.email}</div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : u.role === 'tech' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+                            ${u.role}
+                        </span>
+                        <div class="text-xs text-gray-400 mt-1">Pass: ${u.password}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Auto-run on load
+        window.onload = () => {
+            runDiagnostics();
+        };
+    </script>
+</body>
+</html>
