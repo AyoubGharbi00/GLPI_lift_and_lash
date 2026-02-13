@@ -34,6 +34,18 @@
 </head>
 <body class="bg-gray-50 font-sans text-gray-800">
 
+    <!-- Debug Console -->
+    <div id="debugConsole" class="debug-console hidden">
+        <div class="flex justify-between items-center mb-2 border-b border-gray-600 pb-1">
+            <span class="text-white font-bold">Debug Console</span>
+            <button onclick="toggleDebug()" class="text-gray-400 hover:text-white">×</button>
+        </div>
+        <div id="debugOutput"></div>
+    </div>
+    <button onclick="toggleDebug()" class="fixed bottom-20 right-5 bg-gray-800 text-white px-3 py-1 rounded text-xs z-50">
+        Debug
+    </button>
+
     <!-- Sync Status -->
     <div id="syncStatus" class="sync-indicator hidden">
         <div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
@@ -127,10 +139,6 @@
                 <a href="#" onclick="showSection('users')" class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition admin-only" id="nav-users">
                     <i class="fas fa-users w-6"></i>
                     <span class="font-medium">Utilisateurs</span>
-                </a>
-                <a href="#" onclick="showSection('stats')" class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition" id="nav-stats">
-                    <i class="fas fa-chart-bar w-6"></i>
-                    <span class="font-medium">Statistiques</span>
                 </a>
             </nav>
             
@@ -349,33 +357,6 @@
                         </thead>
                         <tbody id="usersTableBody" class="divide-y divide-gray-200"></tbody>
                     </table>
-                </div>
-            </section>
-
-            <!-- Stats Section -->
-            <section id="stats" class="section-content hidden fade-in">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Statistiques</h2>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-white rounded-xl shadow-sm p-6">
-                        <h3 class="font-bold text-lg mb-4">Tickets par statut</h3>
-                        <canvas id="statusChart" width="400" height="200"></canvas>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow-sm p-6">
-                        <h3 class="font-bold text-lg mb-4">Tickets par service</h3>
-                        <canvas id="serviceChart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <h3 class="font-bold text-lg mb-4">Temps de résolution moyen</h3>
-                    <div class="flex items-center justify-center py-8">
-                        <div class="text-center">
-                            <div class="text-5xl font-bold text-blue-600 mb-2" id="avgResolutionTime">0h</div>
-                            <p class="text-gray-500">Temps moyen de résolution</p>
-                        </div>
-                    </div>
                 </div>
             </section>
         </main>
