@@ -797,67 +797,6 @@
         // ============================================
         // STATS
         // ============================================
-        
-        function updateStats() {
-            const statusCtx = document.getElementById('statusChart').getContext('2d');
-            const statusCounts = {
-                'Nouveau': localTickets.filter(t => t.status === 'Nouveau').length,
-                'En cours': localTickets.filter(t => t.status === 'En cours').length,
-                'Résolu': localTickets.filter(t => t.status === 'Résolu').length
-            };
-            
-            new Chart(statusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(statusCounts),
-                    datasets: [{
-                        data: Object.values(statusCounts),
-                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-
-            const serviceCtx = document.getElementById('serviceChart').getContext('2d');
-            const services = ['Production', 'Administration', 'RH', 'Logistique', 'Direction', 'IT'];
-            const serviceCounts = services.map(s => localTickets.filter(t => t.service === s).length);
-            
-            new Chart(serviceCtx, {
-                type: 'bar',
-                data: {
-                    labels: services,
-                    datasets: [{
-                        label: 'Tickets',
-                        data: serviceCounts,
-                        backgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    }
-                }
-            });
-
-            const resolvedTickets = localTickets.filter(t => t.status === 'Résolu' && t.resolvedAt && t.createdAt);
-            let totalHours = 0;
-            resolvedTickets.forEach(t => {
-                const created = new Date(t.createdAt);
-                const resolved = new Date(t.resolvedAt);
-                const hours = (resolved - created) / (1000 * 60 * 60);
-                totalHours += hours;
-            });
-            const avgHours = resolvedTickets.length > 0 ? Math.round(totalHours / resolvedTickets.length) : 0;
-            document.getElementById('avgResolutionTime').textContent = avgHours + 'h';
-        }
 
         // Close modals on outside click
         window.onclick = function(event) {
