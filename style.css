@@ -1,0 +1,47 @@
+
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .sidebar-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-right: 3px solid #3b82f6;
+        }
+        .sidebar-item.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-right: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        .debug-console {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1e293b;
+            color: #10b981;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+    
