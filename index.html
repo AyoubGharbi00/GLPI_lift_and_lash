@@ -1,179 +1,271 @@
 <!DOCTYPE html>
+<!-- Déclaration du type de document HTML5 -->
 <html lang="fr">
+<!-- Élément racine HTML avec langue française -->
+
 <head>
+    <!-- En-tête du document contenant les métadonnées -->
     <meta charset="UTF-8">
+    <!-- Définition de l'encodage des caractères en UTF-8 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLPI Lift and lash </title>
+    <!-- Configuration du viewport pour le responsive design -->
+    <title>GLPI Lift and lash</title>
+    <!-- Titre de la page affiché dans l'onglet du navigateur -->
+    
+    <!-- Inclusion de Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Inclusion de Font Awesome pour les icônes -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Inclusion de la police Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght:300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lien vers la feuille de style personnalisée -->
     <link rel="stylesheet" href="style.css">
     
+    <!-- ============================================ -->
+    <!-- SECTION FIREBASE - SDK et Configuration -->
+    <!-- ============================================ -->
     
-    <!-- Firebase SDK -->
+    <!-- SDK Firebase App (obligatoire pour tous les services Firebase) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <!-- SDK Firebase Firestore (base de données NoSQL) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- SDK Firebase Storage (stockage de fichiers) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
+    <!-- Configuration personnalisée de Tailwind CSS -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    // Extension de la configuration par défaut
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'] // Définition de la police par défaut
+                    },
                     colors: {
-                        primary: '#3b82f6',
-                        secondary: '#64748b',
-                        success: '#10b981',
-                        warning: '#f59e0b',
-                        danger: '#ef4444',
+                        // Définition des couleurs personnalisées
+                        primary: '#3b82f6',    // Bleu primaire
+                        secondary: '#64748b',  // Gris secondaire
+                        success: '#10b981',    // Vert succès
+                        warning: '#f59e0b',    // Orange avertissement
+                        danger: '#ef4444',     // Rouge danger
                     }
                 }
             }
         }
     </script>
-    
 </head>
+
 <body class="bg-gray-50 font-sans text-gray-800">
+    <!-- Corps du document avec classes Tailwind pour le style de base -->
 
-    <!-- Debug Console -->
-    <div id="debugConsole" class="debug-console hidden">
-        <div class="flex justify-between items-center mb-2 border-b border-gray-600 pb-1">
-            <span class="text-white font-bold"></span>
-            <button onclick="toggleDebug()" class="text-gray-400 hover:text-white">×</button>
-        </div>
-        <div id="debugOutput"></div>
-    </div>
-
-    <!-- Sync Status -->
+    <!-- ============================================ -->
+    <!-- INDICATEUR DE SYNCHRONISATION -->
+    <!-- ============================================ -->
     <div id="syncStatus" class="sync-indicator hidden">
+        <!-- Indicateur de synchronisation (caché par défaut) -->
         <div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+            <!-- Style de notification verte -->
             <i class="fas fa-sync fa-spin"></i>
+            <!-- Icône de synchronisation avec animation rotation -->
             <span>Synchronisation...</span>
+            <!-- Texte indicatif -->
         </div>
     </div>
 
-    <!-- Login Screen -->
+    <!-- ============================================ -->
+    <!-- ÉCRAN DE CONNEXION (Login) -->
+    <!-- ============================================ -->
     <div id="loginScreen" class="fixed inset-0 gradient-bg flex items-center justify-center z-50">
+        <!-- Conteneur fixe plein écran avec fond dégradé et z-index élevé -->
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 slide-in">
+            <!-- Carte blanche avec ombre, largeur max et animation d'entrée -->
+            
+            <!-- Logo et titre -->
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <!-- Cercle bleu clair pour l'icône -->
                     <i class="fas fa-cube text-2xl text-blue-600"></i>
+                    <!-- Icône cube -->
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800">GLPI lift and lash</h1>
+                <!-- Titre principal -->
                 <p class="text-gray-500 text-sm mt-2">Gestion IT Collaborative</p>
+                <!-- Sous-titre -->
+                
+                <!-- Indicateur de statut de connexion -->
                 <div id="connectionStatus" class="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs">
-                    <i class="fas fa-circle mr-1 text-xs"></i> <span id="statusText">Checking...</span>
+                    <i class="fas fa-circle mr-1 text-xs"></i>
+                    <!-- Point indicateur -->
+                    <span id="statusText">Checking...</span>
+                    <!-- Texte dynamique du statut -->
                 </div>
             </div>
             
+            <!-- Formulaire de connexion -->
             <form id="loginForm" class="space-y-4">
+                <!-- Champ Email -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" id="loginEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin@glpi-lite.com" required>
+                    <input type="email" id="loginEmail" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                           placeholder="admin@glpi-lite.com" required>
+                    <!-- Input email avec styles Tailwind et validation requise -->
                 </div>
+                
+                <!-- Champ Mot de passe -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
-                    <input type="password" id="loginPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required>
+                    <input type="password" id="loginPassword" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                           placeholder="••••••••" required>
+                    <!-- Input password masqué avec validation requise -->
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+                
+                <!-- Bouton de connexion -->
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium">
                     <i class="fas fa-sign-in-alt mr-2"></i>Connexion
+                    <!-- Icône et texte du bouton -->
                 </button>
             </form>
             
-            
+            <!-- Section statut Firebase -->
             <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p class="text-xs text-blue-800 text-center">
                     <i class="fas fa-info-circle mr-1"></i>
                     <span id="firebaseStatus">Initialisation Firebase...</span>
+                    <!-- Message de statut dynamique -->
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- Main Application -->
+    <!-- ============================================ -->
+    <!-- APPLICATION PRINCIPALE (cachée initialement) -->
+    <!-- ============================================ -->
     <div id="app" class="hidden min-h-screen flex">
-        <!-- Sidebar -->
+        <!-- Conteneur principal caché jusqu'à connexion, hauteur min écran, flexbox -->
+        
+        <!-- ============================================ -->
+        <!-- SIDEBAR - Navigation latérale (Desktop) -->
+        <!-- ============================================ -->
         <aside class="w-64 bg-white shadow-lg fixed h-full z-40 hidden md:block">
+            <!-- Barre latérale fixe, largeur fixe, ombre, visible uniquement sur md+ -->
+            
+            <!-- En-tête de la sidebar -->
             <div class="p-6 border-b border-gray-100">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                         <i class="fas fa-cube text-white"></i>
                     </div>
                     <div>
-                        <h1 class="font-bold text-lg text-gray-800">GLPI Lite</h1>
+                        <h1 class="font-bold text-lg text-red-800">GLPI Lift and Lash</h1>
                         <p class="text-xs text-gray-500" id="userRoleDisplay">Admin</p>
+                        <!-- Affichage dynamique du rôle -->
                         <div class="flex items-center mt-1">
                             <span id="onlineIndicator" class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                            <!-- Indicateur de connexion en ligne -->
                             <span id="onlineText" class="text-xs text-green-600">Online</span>
                         </div>
                     </div>
                 </div>
             </div>
             
+            <!-- Menu de navigation -->
             <nav class="mt-6 px-4 space-y-1">
-                <a href="#" onclick="showSection('dashboard')" class="sidebar-item active flex items-center px-4 py-3 text-gray-700 rounded-lg transition" id="nav-dashboard">
+                <!-- Lien Tableau de bord -->
+                <a href="#" onclick="showSection('dashboard')" 
+                   class="sidebar-item active flex items-center px-4 py-3 text-gray-700 rounded-lg transition" 
+                   id="nav-dashboard">
                     <i class="fas fa-chart-line w-6"></i>
                     <span class="font-medium">Tableau de bord</span>
                 </a>
-                <a href="#" onclick="showSection('tickets')" class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition" id="nav-tickets">
+                
+                <!-- Lien Tickets avec badge -->
+                <a href="#" onclick="showSection('tickets')" 
+                   class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition" 
+                   id="nav-tickets">
                     <i class="fas fa-ticket-alt w-6"></i>
                     <span class="font-medium">Tickets</span>
                     <span id="ticketBadge" class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full hidden">0</span>
+                    <!-- Badge de notification (caché par défaut) -->
                 </a>
-                <a href="#" onclick="showSection('assets')" class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition" id="nav-assets">
+                
+                <!-- Lien Parc Informatique -->
+                <a href="#" onclick="showSection('assets')" 
+                   class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition" 
+                   id="nav-assets">
                     <i class="fas fa-laptop w-6"></i>
                     <span class="font-medium">Parc Informatique</span>
                 </a>
-                <a href="#" onclick="showSection('maintenance')" class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition" id="nav-maintenance">
-                    <i class="fas fa-wrench w-6"></i>
-                    <span class="font-medium">Maintenance</span>
-                </a>
-                <a href="#" onclick="showSection('users')" class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition admin-only" id="nav-users">
+                
+                <!-- Lien Utilisateurs (visible uniquement admin) -->
+                <a href="#" onclick="showSection('users')" 
+                   class="sidebar-item flex items-center px-4 py-3 text-gray-700 rounded-lg transition admin-only" 
+                   id="nav-users">
                     <i class="fas fa-users w-6"></i>
                     <span class="font-medium">Utilisateurs</span>
                 </a>
             </nav>
             
+            <!-- Pied de sidebar avec infos utilisateur -->
             <div class="absolute bottom-0 w-full p-4 border-t border-gray-100">
                 <div class="flex items-center px-4 py-2">
                     <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
                         <i class="fas fa-user text-gray-600 text-sm"></i>
+                        <!-- Avatar utilisateur par défaut -->
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate" id="sidebarUserName">Admin</p>
+                        <!-- Nom dynamique -->
                         <p class="text-xs text-gray-500 truncate" id="sidebarUserEmail">admin@glpi-lite.com</p>
+                        <!-- Email dynamique -->
                     </div>
                     <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition">
                         <i class="fas fa-sign-out-alt"></i>
+                        <!-- Bouton déconnexion -->
                     </button>
                 </div>
             </div>
         </aside>
 
-        <!-- Mobile Header -->
+        <!-- ============================================ -->
+        <!-- HEADER MOBILE -->
+        <!-- ============================================ -->
         <div class="md:hidden fixed top-0 w-full bg-white shadow-md z-30 px-4 py-3 flex justify-between items-center">
+            <!-- Header fixe visible uniquement sur mobile (caché sur md+) -->
             <div class="flex items-center space-x-2">
                 <i class="fas fa-cube text-blue-600 text-xl"></i>
                 <span class="font-bold text-lg">GLPI Lite</span>
             </div>
             <button onclick="toggleMobileMenu()" class="text-gray-600">
                 <i class="fas fa-bars text-xl"></i>
+                <!-- Bouton menu hamburger -->
             </button>
         </div>
 
-        <!-- Mobile Menu -->
+        <!-- ============================================ -->
+        <!-- MENU MOBILE (Overlay) -->
+        <!-- ============================================ -->
         <div id="mobileMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onclick="toggleMobileMenu()">
+            <!-- Overlay sombre avec fond semi-transparent, fermeture au clic -->
             <div class="bg-white w-64 h-full p-4" onclick="event.stopPropagation()">
+                <!-- Panneau blanc, stopPropagation pour éviter fermeture au clic interne -->
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="font-bold text-lg">Menu</h2>
                     <button onclick="toggleMobileMenu()" class="text-gray-500">
                         <i class="fas fa-times"></i>
+                        <!-- Bouton fermeture -->
                     </button>
                 </div>
+                <!-- Navigation mobile -->
                 <nav class="space-y-2">
                     <a href="#" onclick="showSection('dashboard'); toggleMobileMenu()" class="block px-4 py-2 rounded-lg hover:bg-gray-100">Tableau de bord</a>
                     <a href="#" onclick="showSection('tickets'); toggleMobileMenu()" class="block px-4 py-2 rounded-lg hover:bg-gray-100">Tickets</a>
                     <a href="#" onclick="showSection('assets'); toggleMobileMenu()" class="block px-4 py-2 rounded-lg hover:bg-gray-100">Parc Informatique</a>
-                    <a href="#" onclick="showSection('maintenance'); toggleMobileMenu()" class="block px-4 py-2 rounded-lg hover:bg-gray-100">Maintenance</a>
                     <a href="#" onclick="showSection('users'); toggleMobileMenu()" class="block px-4 py-2 rounded-lg hover:bg-gray-100 admin-only">Utilisateurs</a>
                     <hr class="my-4">
                     <button onclick="logout()" class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg">
@@ -183,19 +275,29 @@
             </div>
         </div>
 
-        <!-- Main Content -->
+        <!-- ============================================ -->
+        <!-- CONTENU PRINCIPAL -->
+        <!-- ============================================ -->
         <main class="flex-1 md:ml-64 p-4 md:p-8 mt-14 md:mt-0">
+            <!-- Zone principale flexible, marge gauche sur desktop, padding responsive -->
             
-            <!-- Dashboard Section -->
+            <!-- ============================================ -->
+            <!-- SECTION : TABLEAU DE BORD -->
+            <!-- ============================================ -->
             <section id="dashboard" class="section-content fade-in">
+                <!-- Section visible par défaut avec animation fade-in -->
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Tableau de bord</h2>
                 
+                <!-- Grille de statistiques (4 colonnes sur grand écran) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    
+                    <!-- Carte : Total Tickets -->
                     <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition border-l-4 border-blue-500">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-sm text-gray-500 mb-1">Total Tickets</p>
                                 <h3 class="text-3xl font-bold text-gray-800" id="dashTotalTickets">0</h3>
+                                <!-- Valeur dynamique -->
                             </div>
                             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                                 <i class="fas fa-ticket-alt text-blue-600 text-xl"></i>
@@ -204,6 +306,7 @@
                         <p class="text-xs text-gray-400 mt-2">Tous les tickets</p>
                     </div>
                     
+                    <!-- Carte : Tickets En cours -->
                     <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition border-l-4 border-yellow-500">
                         <div class="flex justify-between items-start">
                             <div>
@@ -217,6 +320,7 @@
                         <p class="text-xs text-gray-400 mt-2">Tickets actifs</p>
                     </div>
                     
+                    <!-- Carte : Tickets Résolus -->
                     <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition border-l-4 border-green-500">
                         <div class="flex justify-between items-start">
                             <div>
@@ -230,6 +334,7 @@
                         <p class="text-xs text-gray-400 mt-2">Ce mois-ci</p>
                     </div>
                     
+                    <!-- Carte : Total Équipements -->
                     <div class="bg-white rounded-xl shadow-sm p-6 card-hover transition border-l-4 border-purple-500">
                         <div class="flex justify-between items-start">
                             <div>
@@ -244,21 +349,29 @@
                     </div>
                 </div>
 
+                <!-- Grille inférieure : 2 colonnes -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Liste des tickets récents -->
                     <div class="bg-white rounded-xl shadow-sm p-6">
                         <h3 class="font-bold text-lg mb-4">Tickets récents</h3>
                         <div id="recentTicketsList" class="space-y-3"></div>
+                        <!-- Contenu dynamique -->
                     </div>
                     
+                    <!-- Liste des équipements en panne -->
                     <div class="bg-white rounded-xl shadow-sm p-6">
                         <h3 class="font-bold text-lg mb-4">Équipements en panne</h3>
                         <div id="brokenAssetsList" class="space-y-3"></div>
+                        <!-- Contenu dynamique -->
                     </div>
                 </div>
             </section>
 
-            <!-- Tickets Section -->
+            <!-- ============================================ -->
+            <!-- SECTION : GESTION DES TICKETS -->
+            <!-- ============================================ -->
             <section id="tickets" class="section-content hidden fade-in">
+                <!-- Section cachée par défaut -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-gray-800">Gestion des Tickets</h2>
                     <button onclick="openTicketModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center">
@@ -266,25 +379,35 @@
                     </button>
                 </div>
 
+                <!-- Conteneur de la liste des tickets -->
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <!-- Barre de filtres -->
                     <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row gap-4">
+                        <!-- Champ de recherche -->
                         <div class="flex-1 relative">
                             <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                            <input type="text" id="ticketSearch" placeholder="Rechercher un ticket..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onkeyup="filterTickets()">
+                            <input type="text" id="ticketSearch" placeholder="Rechercher un ticket..." 
+                                   class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                   onkeyup="filterTickets()">
                         </div>
-                        <select id="ticketStatusFilter" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="filterTickets()">
+                        <!-- Filtre par statut -->
+                        <select id="ticketStatusFilter" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                onchange="filterTickets()">
                             <option value="">Tous les statuts</option>
                             <option value="Nouveau">Nouveau</option>
                             <option value="En cours">En cours</option>
                             <option value="Résolu">Résolu</option>
                         </select>
-                        <select id="ticketPriorityFilter" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="filterTickets()">
+                        <!-- Filtre par priorité -->
+                        <select id="ticketPriorityFilter" class="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                onchange="filterTickets()">
                             <option value="">Toutes priorités</option>
                             <option value="Urgent">Urgent</option>
                             <option value="Normal">Normal</option>
                         </select>
                     </div>
                     
+                    <!-- Tableau des tickets avec défilement horizontal -->
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead class="bg-gray-50">
@@ -299,13 +422,17 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="ticketsTableBody" class="divide-y divide-gray-200"></tbody>
+                            <tbody id="ticketsTableBody" class="divide-y divide-gray-200">
+                                <!-- Lignes générées dynamiquement -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- Assets Section -->
+            <!-- ============================================ -->
+            <!-- SECTION : PARC INFORMATIQUE -->
+            <!-- ============================================ -->
             <section id="assets" class="section-content hidden fade-in">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-gray-800">Parc Informatique</h2>
@@ -314,18 +441,27 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="assetsGrid"></div>
-            </section>
-
-            <!-- Maintenance Section -->
-            <section id="maintenance" class="section-content hidden fade-in">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Historique de Maintenance</h2>
-                <div class="bg-white rounded-xl shadow-sm p-6">
-                    <div class="space-y-6" id="maintenanceTimeline"></div>
+                <!-- Grille des équipements (responsive) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="assetsGrid">
+                    <!-- Cartes générées dynamiquement -->
                 </div>
             </section>
 
-            <!-- Users Section -->
+            <!-- ============================================ -->
+            <!-- SECTION : HISTORIQUE MAINTENANCE -->
+            <!-- ============================================ -->
+            <section id="maintenance" class="section-content hidden fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Historique de Maintenance</h2>
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="space-y-6" id="maintenanceTimeline">
+                        <!-- Timeline générée dynamiquement -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION : GESTION DES UTILISATEURS -->
+            <!-- ============================================ -->
             <section id="users" class="section-content hidden fade-in">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h2 class="text-2xl font-bold text-gray-800">Gestion des Utilisateurs</h2>
@@ -345,35 +481,53 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="usersTableBody" class="divide-y divide-gray-200"></tbody>
+                        <tbody id="usersTableBody" class="divide-y divide-gray-200">
+                            <!-- Lignes générées dynamiquement -->
+                        </tbody>
                     </table>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Modals -->
+    <!-- ============================================ -->
+    <!-- MODALS (Fenêtres modales) -->
+    <!-- ============================================ -->
+
+    <!-- Modal : Nouveau Ticket -->
     <div id="ticketModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <!-- Overlay modal centré avec fond sombre -->
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto slide-in">
+            <!-- Conteneur blanc avec max-height et défilement -->
             <div class="p-6 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="text-xl font-bold">Nouveau Ticket</h3>
                 <button onclick="closeTicketModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
+            
             <form id="ticketForm" class="p-6 space-y-4">
+                <!-- Champ Titre -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Titre</label>
-                    <input type="text" name="title" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="text" name="title" required 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
+                
+                <!-- Champ Description -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" rows="3" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                    <textarea name="description" rows="3" required 
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
                 </div>
+                
+                <!-- Grille 2 colonnes : Service et Priorité -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
-                        <select name="service" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select name="service" id="ticketServiceSelect" required 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                onchange="onServiceChange()">
                             <option value="Informatique">Informatique</option>
                             <option value="Production">Production</option>
                             <option value="Administration">Administration</option>
@@ -384,13 +538,54 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                        <select name="priority" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <select name="priority" required 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                             <option value="Normal">Normal</option>
-                             <option value="Moyen">Moyenne</option>
+                            <option value="Moyen">Moyenne</option>
                             <option value="Urgent">Urgent</option>
                         </select>
                     </div>
                 </div>
+                
+                <!-- Type de panne (conditionnel, visible uniquement pour Informatique) -->
+                <div id="panneTypeContainer" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Type de panne</label>
+                    <select name="panneType" id="panneTypeSelect" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Sélectionner un type</option>
+                        <option value="Materiel">Panne matérielle</option>
+                        <option value="Logiciel">Panne logicielle</option>
+                        <option value="Reseau">Problème réseau</option>
+                        <option value="Peripherique">Périphérique</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+                
+                <!-- Zone de téléchargement de fichier -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pièce jointe</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition cursor-pointer" 
+                         onclick="document.getElementById('ticketAttachment').click()">
+                        <div class="space-y-1 text-center">
+                            <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl"></i>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="ticketAttachment" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                    <span>Télécharger un fichier</span>
+                                    <input id="ticketAttachment" name="attachment" type="file" class="sr-only" onchange="handleFileSelect(this)">
+                                    <!-- sr-only = screen reader only (caché visuellement) -->
+                                </label>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG, PDF jusqu'à 10MB</p>
+                            <p id="selectedFileName" class="text-sm text-blue-600 font-medium hidden"></p>
+                            <!-- Nom du fichier sélectionné (caché initialement) -->
+                        </div>
+                    </div>
+                    <!-- Champs cachés pour stocker l'URL et le nom du fichier -->
+                    <input type="hidden" name="attachmentUrl" id="attachmentUrl">
+                    <input type="hidden" name="attachmentName" id="attachmentName">
+                </div>
+                
+                <!-- Boutons d'action -->
                 <div class="flex justify-end space-x-3 pt-4">
                     <button type="button" onclick="closeTicketModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">Annuler</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Créer</button>
@@ -399,6 +594,7 @@
         </div>
     </div>
 
+    <!-- Modal : Nouvel Équipement -->
     <div id="assetModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg slide-in">
             <div class="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -453,6 +649,7 @@
         </div>
     </div>
 
+    <!-- Modal : Nouvel Utilisateur -->
     <div id="userModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg slide-in">
             <div class="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -462,6 +659,7 @@
                 </button>
             </div>
             <form id="userForm" class="p-6 space-y-4">
+                <!-- Prénom et Nom sur 2 colonnes -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
@@ -510,19 +708,25 @@
         </div>
     </div>
 
+    <!-- Modal : Détails d'un Ticket -->
     <div id="ticketDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto slide-in">
+            <!-- Plus large (max-w-2xl) pour afficher les détails -->
             <div class="p-6 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="text-xl font-bold">Détails du Ticket</h3>
                 <button onclick="closeTicketDetailModal()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            <div id="ticketDetailContent" class="p-6"></div>
+            <div id="ticketDetailContent" class="p-6">
+                <!-- Contenu dynamique injecté par JavaScript -->
+            </div>
         </div>
     </div>
 
+    <!-- Inclusion de Chart.js pour les graphiques -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-   <script src="script.js"></script>
+    <!-- Inclusion du script principal JavaScript -->
+    <script src="script.js"></script>
 </body>
 </html>

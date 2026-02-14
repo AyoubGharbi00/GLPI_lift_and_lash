@@ -1,19 +1,4 @@
-        // ============================================
-        // DEBUG FUNCTIONS
-        // ============================================
-        let debugMode = false;
-        function toggleDebug() {
-            debugMode = !debugMode;
-            document.getElementById('debugConsole').classList.toggle('hidden');
-        }
-        
-        function debug(msg, type = 'info') {
-            const output = document.getElementById('debugOutput');
-            const color = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#10b981';
-            output.innerHTML += `<div style="color: ${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-            output.scrollTop = output.scrollHeight;
-            console.log(`[${type}] ${msg}`);
-        }
+// ============================================
 
         // ============================================
         // FIREBASE CONFIGURATION
@@ -28,8 +13,8 @@
             measurementId: "G-H9FLJK4EH6"
         };
 
-        // Initialize Firebase
         let db = null;
+        let storage = null;
         let isOnline = false;
         let firebaseInitialized = false;
         
@@ -38,18 +23,16 @@
                 if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
                     firebase.initializeApp(firebaseConfig);
                     db = firebase.firestore();
+                    storage = firebase.storage();
                     isOnline = true;
                     firebaseInitialized = true;
-                    debug("✅ Firebase connected successfully", "success");
                     updateConnectionStatus(true);
                     return true;
                 } else {
-                    debug("⚠️ Invalid Firebase config", "error");
                     updateConnectionStatus(false);
                     return false;
                 }
             } catch (error) {
-                debug("❌ Firebase init error: " + error.message, "error");
                 updateConnectionStatus(false);
                 return false;
             }
@@ -84,43 +67,36 @@
         let currentUser = null;
         const SESSION_KEY = 'glpi_lite_session';
         
-        // Demo data - ALWAYS AVAILABLE (fallback)
         const demoUsers = [
             { id: 1, firstName: 'Admin', lastName: 'System', email: 'admin@glpi-lite.com', password: 'admin', role: 'admin', department: 'IT' },
             { id: 2, firstName: 'Tech', lastName: 'Support', email: 'tech@glpi-lite.com', password: 'tech', role: 'tech', department: 'IT' },
-            { id: 3, firstName: 'Jean', lastName: 'Dupont', email: 'user@glpi-lite.com', password: 'user', role: 'user', department: 'Production' }
+            { id: 3, firstName: 'Jean', lastName: 'Dupont', email: 'user@glpi-lite.com', password: 'user', role: 'user', department: 'Production' },
+            { id: 4, firstName: 'Marie', lastName: 'Martin', email: 'marie@informatique.com', password: 'marie', role: 'tech', department: 'Informatique' }
         ];
 
-        // Working data (starts with demo data)
         let localUsers = [...demoUsers];
         let localTickets = [
-            { id: 1, title: 'Imprimante ne répond plus', description: 'L\'imprimante du bureau 302 ne répond plus depuis ce matin.', requester: 'marie.martin@company.com', service: 'RH', priority: 'Normal', status: 'En cours', createdAt: '2024-01-15', resolvedAt: null, assignedTo: 'tech@glpi-lite.com' },
-            { id: 2, title: 'PC lent au démarrage', description: 'Le PC de production prend 10 minutes à démarrer.', requester: 'jean.dupont@company.com', service: 'Production', priority: 'Normal', status: 'Nouveau', createdAt: '2024-01-16', resolvedAt: null, assignedTo: null }
+            { id: 1, title: 'Imprimante ne répond plus', description: 'L\'imprimante du bureau 302 ne répond plus depuis ce matin.', requester: 'marie.martin@company.com', service: 'RH', priority: 'Normal', status: 'En cours', createdAt: '2024-01-15', resolvedAt: null, assignedTo: 'tech@glpi-lite.com', panneType: null, attachmentUrl: null, attachmentName: null },
+            { id: 2, title: 'PC lent au démarrage', description: 'Le PC de production prend 10 minutes à démarrer.', requester: 'jean.dupont@company.com', service: 'Production', priority: 'Normal', status: 'Nouveau', createdAt: '2024-01-16', resolvedAt: null, assignedTo: null, panneType: null, attachmentUrl: null, attachmentName: null },
+            { id: 3, title: 'Problème réseau', description: 'Pas de connexion internet', requester: 'user@glpi-lite.com', service: 'Informatique', priority: 'Urgent', status: 'En cours', createdAt: '2024-01-17', resolvedAt: null, assignedTo: 'marie@informatique.com', panneType: 'Reseau', attachmentUrl: null, attachmentName: null }
         ];
         let localAssets = [
             { id: 1, name: 'PC-DELL-001', type: 'PC', serial: 'SN123456789', location: 'Bureau 302', status: 'En service', purchaseDate: '2023-01-15' },
             { id: 2, name: 'PRT-HP-001', type: 'Imprimante', serial: 'SN987654321', location: 'Bureau 302', status: 'En panne', purchaseDate: '2022-06-20' }
         ];
         let localMaintenance = [];
-
-        // Data getters with fallback
         async function getUsers() {
-            debug("Getting users...");
             if (isOnline && db) {
                 try {
                     const snapshot = await db.collection('users').get();
                     const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    debug(`✅ Loaded ${users.length} users from Firebase`, "success");
-                    // If Firebase has users, use them. Otherwise use local.
                     if (users.length > 0) {
                         localUsers = users;
                         return users;
                     }
                 } catch (error) {
-                    debug("❌ Error loading from Firebase: " + error.message, "error");
                 }
             }
-            debug(`Using ${localUsers.length} local users`);
             return localUsers;
         }
 
@@ -134,7 +110,6 @@
                         return tickets;
                     }
                 } catch (error) {
-                    debug("Error loading tickets: " + error.message, "error");
                 }
             }
             return localTickets;
@@ -150,7 +125,6 @@
                         return assets;
                     }
                 } catch (error) {
-                    debug("Error loading assets: " + error.message, "error");
                 }
             }
             return localAssets;
@@ -166,37 +140,21 @@
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
             
-            debug(`Login attempt: ${email}`);
             
-            // Ensure users are loaded
             const users = await getUsers();
             
-            debug(`Checking against ${users.length} users: ${users.map(u => u.email).join(', ')}`);
-            
-            // Find matching user
             const user = users.find(u => u.email === email && u.password === password);
             
             if (user) {
-                debug(`✅ Login successful: ${user.firstName} ${user.lastName} (${user.role})`, "success");
                 currentUser = user;
                 saveSession(user);
                 
-                // Hide login, show app
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
                 
-                // Initialize app
                 await initApp();
             } else {
-                debug(`❌ Login failed for ${email}`, "error");
-                
-                // Check if email exists with wrong password
-                const emailExists = users.find(u => u.email === email);
-                if (emailExists) {
-                    alert('Mot de passe incorrect pour cet email');
-                } else {
-                    alert(`Email "${email}" non trouvé. Utilisateurs disponibles:\n${users.map(u => u.email).join('\n')}`);
-                }
+                alert('Email ou mot de passe incorrect');
             }
         }
 
@@ -217,7 +175,6 @@
                     return JSON.parse(session);
                 }
             } catch (e) {
-                debug('Session load error: ' + e.message, "error");
             }
             return null;
         }
@@ -225,7 +182,6 @@
         async function checkExistingSession() {
             const sessionUser = loadSession();
             if (sessionUser) {
-                debug('Restoring session for: ' + sessionUser.email);
                 currentUser = sessionUser;
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('app').classList.remove('hidden');
@@ -241,7 +197,6 @@
             document.getElementById('app').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
             document.getElementById('loginForm').reset();
-            debug('Logged out');
         }
 
         // ============================================
@@ -249,35 +204,76 @@
         // ============================================
         
         async function initApp() {
-            debug('Initializing app...');
             
-            // Update UI with user info
+            // Appliquer le thème selon le rôle
+            applyRoleTheme();
+            
             document.getElementById('sidebarUserName').textContent = currentUser.firstName + ' ' + currentUser.lastName;
             document.getElementById('sidebarUserEmail').textContent = currentUser.email;
             document.getElementById('userRoleDisplay').textContent = getRoleLabel(currentUser.role);
             
-            // Show/hide admin elements
-            const adminElements = document.querySelectorAll('.admin-only');
-            adminElements.forEach(el => {
-                if (currentUser.role === 'admin') {
-                    el.classList.remove('hidden');
-                } else {
-                    el.classList.add('hidden');
-                }
-            });
-
-            // Load all data
+            updateUIBasedOnRole();
+            
             await loadAllData();
             
-            // Render all sections
             updateDashboard();
             renderTickets();
             renderAssets();
             renderMaintenance();
             renderUsers();
-            updateStats();
             
-            debug('App initialized successfully', "success");
+        }
+
+        function applyRoleTheme() {
+            const body = document.body;
+            const sidebar = document.querySelector('aside');
+            const navItems = document.querySelectorAll('.sidebar-item');
+            
+            // Reset classes
+            body.classList.remove('admin-theme', 'tech-theme', 'user-theme');
+            
+            if (currentUser.role === 'admin') {
+                body.classList.add('admin-theme');
+                // Admin: sidebar violet foncé
+                if (sidebar) {
+                    sidebar.style.background = 'linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)';
+                }
+                navItems.forEach(item => {
+                    item.style.color = '#e0e7ff';
+                });
+            } else if (currentUser.role === 'tech') {
+                body.classList.add('tech-theme');
+                // Tech: sidebar bleu foncé
+                if (sidebar) {
+                    sidebar.style.background = 'linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%)';
+                }
+                navItems.forEach(item => {
+                    item.style.color = '#dbeafe';
+                });
+            } else {
+                body.classList.add('user-theme');
+                // User: sidebar normale (blanche)
+                if (sidebar) {
+                    sidebar.style.background = '#ffffff';
+                }
+            }
+        }
+
+        function updateUIBasedOnRole() {
+            const usersNav = document.getElementById('nav-users');
+            if (usersNav && currentUser.role !== 'admin') {
+                usersNav.classList.add('hidden');
+            }
+            
+            const maintenanceNav = document.getElementById('nav-maintenance');
+            if (maintenanceNav && currentUser.role === 'user') {
+                maintenanceNav.classList.add('hidden');
+            }
+            
+            const assetsNav = document.getElementById('nav-assets');
+            if (assetsNav && currentUser.role === 'user') {
+                assetsNav.classList.add('hidden');
+            }
         }
 
         async function loadAllData() {
@@ -303,13 +299,27 @@
             
             document.querySelectorAll('.sidebar-item').forEach(item => {
                 item.classList.remove('active');
+                // Réappliquer la couleur selon le thème
+                if (currentUser.role === 'admin') {
+                    item.style.color = '#e0e7ff';
+                } else if (currentUser.role === 'tech') {
+                    item.style.color = '#dbeafe';
+                }
             });
             
             const navItem = document.getElementById('nav-' + sectionId);
-            if (navItem) navItem.classList.add('active');
-            
-            if (sectionId === 'dashboard') updateDashboard();
-            if (sectionId === 'stats') updateStats();
+            if (navItem) {
+                navItem.classList.add('active');
+                if (currentUser.role === 'admin') {
+                    navItem.style.background = 'rgba(167, 139, 250, 0.2)';
+                    navItem.style.borderRight = '3px solid #a78bfa';
+                    navItem.style.color = '#a78bfa';
+                } else if (currentUser.role === 'tech') {
+                    navItem.style.background = 'rgba(96, 165, 250, 0.2)';
+                    navItem.style.borderRight = '3px solid #60a5fa';
+                    navItem.style.color = '#60a5fa';
+                }
+            }
         }
 
         function toggleMobileMenu() {
@@ -321,13 +331,43 @@
         // DASHBOARD
         // ============================================
         
+        function getVisibleTickets() {
+            let visibleTickets = localTickets;
+            
+            if (currentUser.role === 'admin') {
+                // Admin voit tout
+                visibleTickets = localTickets;
+            } else if (currentUser.department === 'Informatique' || currentUser.department === 'IT') {
+                // Tech Informatique: voir les tickets IT + ceux qui lui sont assignés + ceux qu'il a créés
+                visibleTickets = localTickets.filter(t => 
+                    t.service === 'Informatique' || 
+                    t.assignedTo === currentUser.email ||
+                    t.requester === currentUser.email
+                );
+            } else if (currentUser.role === 'tech') {
+                // Autres techs: voir ceux de leur département + assignés + créés
+                visibleTickets = localTickets.filter(t => 
+                    t.service === currentUser.department || 
+                    t.assignedTo === currentUser.email ||
+                    t.requester === currentUser.email
+                );
+            } else {
+                // Employé: voir seulement ses tickets (tous les statuts)
+                visibleTickets = localTickets.filter(t => t.requester === currentUser.email);
+            }
+            
+            return visibleTickets;
+        }
+
         function updateDashboard() {
-            document.getElementById('dashTotalTickets').textContent = localTickets.length;
-            document.getElementById('dashOpenTickets').textContent = localTickets.filter(t => t.status !== 'Résolu').length;
-            document.getElementById('dashResolvedTickets').textContent = localTickets.filter(t => t.status === 'Résolu').length;
+            const visibleTickets = getVisibleTickets();
+            
+            document.getElementById('dashTotalTickets').textContent = visibleTickets.length;
+            document.getElementById('dashOpenTickets').textContent = visibleTickets.filter(t => t.status !== 'Résolu').length;
+            document.getElementById('dashResolvedTickets').textContent = visibleTickets.filter(t => t.status === 'Résolu').length;
             document.getElementById('dashTotalAssets').textContent = localAssets.length;
             
-            const openCount = localTickets.filter(t => t.status !== 'Résolu').length;
+            const openCount = visibleTickets.filter(t => t.status !== 'Résolu').length;
             const badge = document.getElementById('ticketBadge');
             if (openCount > 0) {
                 badge.textContent = openCount;
@@ -336,8 +376,7 @@
                 badge.classList.add('hidden');
             }
             
-            // Recent tickets
-            const recentTickets = localTickets.slice(-5).reverse();
+            const recentTickets = visibleTickets.slice(-5).reverse();
             const recentHtml = recentTickets.map(ticket => `
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition cursor-pointer" onclick="showTicketDetail(${ticket.id})">
                     <div class="flex-1 min-w-0">
@@ -349,7 +388,6 @@
             `).join('');
             document.getElementById('recentTicketsList').innerHTML = recentHtml || '<p class="text-gray-400 text-sm">Aucun ticket</p>';
             
-            // Broken assets
             const brokenAssets = localAssets.filter(a => a.status === 'En panne');
             const brokenHtml = brokenAssets.map(asset => `
                 <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
@@ -375,21 +413,23 @@
             const priorityFilter = document.getElementById('ticketPriorityFilter').value;
             const searchTerm = document.getElementById('ticketSearch').value.toLowerCase();
             
-            let filteredTickets = localTickets.filter(ticket => {
+            let filteredTickets = getVisibleTickets();
+            
+            // Appliquer les filtres UI
+            filteredTickets = filteredTickets.filter(ticket => {
                 if (statusFilter && ticket.status !== statusFilter) return false;
                 if (priorityFilter && ticket.priority !== priorityFilter) return false;
                 if (searchTerm && !ticket.title.toLowerCase().includes(searchTerm) && !ticket.id.toString().includes(searchTerm)) return false;
                 return true;
             });
 
-            if (currentUser.role === 'user') {
-                filteredTickets = filteredTickets.filter(t => t.requester === currentUser.email);
-            }
-
             tbody.innerHTML = filteredTickets.map(ticket => `
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#${ticket.id}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900 font-medium">${ticket.title}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900 font-medium">
+                        ${ticket.title}
+                        ${ticket.attachmentName ? '<i class="fas fa-paperclip text-blue-500 ml-2" title="Pièce jointe"></i>' : ''}
+                    </td>
                     <td class="px-6 py-4 text-sm text-gray-500">${ticket.requester}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">${ticket.service}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -400,22 +440,62 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${ticket.createdAt}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="showTicketDetail(${ticket.id})" class="text-blue-600 hover:text-blue-900 mr-3">
+                        <button onclick="showTicketDetail(${ticket.id})" class="text-blue-600 hover:text-blue-900 mr-3" title="Voir détails">
                             <i class="fas fa-eye"></i>
                         </button>
-                        ${currentUser.role !== 'user' ? `
+                        ${currentUser.role !== 'user' && ticket.status !== 'Résolu' && !ticket.assignedTo ? `
                             <button onclick="takeTicket(${ticket.id})" class="text-green-600 hover:text-green-900 mr-3" title="Prendre en charge">
                                 <i class="fas fa-hand-paper"></i>
                             </button>
-                            ${ticket.status !== 'Résolu' ? `
-                                <button onclick="resolveTicket(${ticket.id})" class="text-purple-600 hover:text-purple-900" title="Résoudre">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            ` : ''}
+                        ` : ''}
+                        ${currentUser.role !== 'user' && ticket.status !== 'Résolu' ? `
+                            <button onclick="resolveTicket(${ticket.id})" class="text-purple-600 hover:text-purple-900 mr-3" title="Résoudre">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : ''}
+                        ${canDeleteTicket(ticket) ? `
+                            <button onclick="deleteTicket(${ticket.id})" class="text-red-600 hover:text-red-900" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         ` : ''}
                     </td>
                 </tr>
             `).join('');
+        }
+
+        function canDeleteTicket(ticket) {
+            // Admin peut tout supprimer
+            if (currentUser.role === 'admin') return true;
+            // L'utilisateur peut supprimer ses propres tickets si encore "Nouveau"
+            if (ticket.requester === currentUser.email && ticket.status === 'Nouveau') return true;
+            // Le tech assigné peut supprimer s'il est en cours
+            if (ticket.assignedTo === currentUser.email && ticket.status === 'En cours') return true;
+            return false;
+        }
+
+        async function deleteTicket(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce ticket ?')) return;
+            
+            const ticket = localTickets.find(t => t.id === id);
+            if (!ticket) return;
+            
+            // Supprimer localement
+            localTickets = localTickets.filter(t => t.id !== id);
+            
+            // Supprimer de Firebase
+            if (isOnline && db) {
+                try {
+                    // Trouver le document par ID
+                    const snapshot = await db.collection('tickets').where('id', '==', id).get();
+                    snapshot.forEach(doc => {
+                        doc.ref.delete();
+                    });
+                } catch (error) {
+                }
+            }
+            
+            renderTickets();
+            updateDashboard();
         }
 
         function filterTickets() {
@@ -437,16 +517,89 @@
 
         function openTicketModal() {
             document.getElementById('ticketModal').classList.remove('hidden');
+            document.getElementById('panneTypeContainer').classList.add('hidden');
+            document.getElementById('panneTypeSelect').value = '';
         }
 
         function closeTicketModal() {
             document.getElementById('ticketModal').classList.add('hidden');
             document.getElementById('ticketForm').reset();
+            document.getElementById('selectedFileName').classList.add('hidden');
+            document.getElementById('attachmentUrl').value = '';
+            document.getElementById('attachmentName').value = '';
+        }
+
+        function onServiceChange() {
+            const service = document.getElementById('ticketServiceSelect').value;
+            const panneContainer = document.getElementById('panneTypeContainer');
+            
+            if (service === 'Informatique') {
+                panneContainer.classList.remove('hidden');
+            } else {
+                panneContainer.classList.add('hidden');
+                document.getElementById('panneTypeSelect').value = '';
+            }
+        }
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                const fileNameDisplay = document.getElementById('selectedFileName');
+                fileNameDisplay.textContent = `Fichier sélectionné: ${file.name}`;
+                fileNameDisplay.classList.remove('hidden');
+                document.getElementById('attachmentName').value = file.name;
+            }
+        }
+
+        async function uploadFile(file) {
+            if (!storage || !isOnline) {
+                return null;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Fichier trop grand (max 5MB). Le ticket sera créé sans pièce jointe.');
+                return null;
+            }
+            
+            return new Promise((resolve) => {
+                const timeout = setTimeout(() => {
+                 
+                    resolve(null);
+                }, 10000);
+                
+                const storageRef = storage.ref(`tickets/${Date.now()}_${file.name}`);
+                
+                storageRef.put(file)
+                    .then(snapshot => snapshot.ref.getDownloadURL())
+                    .then(downloadUrl => {
+                        clearTimeout(timeout);
+                        resolve(downloadUrl);
+                    })
+                    .catch(error => {
+                        clearTimeout(timeout);
+                        resolve(null);
+                    });
+            });
         }
 
         document.getElementById('ticketForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Création...';
+            
             const formData = new FormData(e.target);
+            const fileInput = document.getElementById('ticketAttachment');
+            
+            let attachmentUrl = null;
+            let attachmentName = formData.get('attachmentName');
+            
+            if (fileInput.files[0] && isOnline && storage) {
+                document.getElementById('syncStatus').classList.remove('hidden');
+                attachmentUrl = await uploadFile(fileInput.files[0]);
+                document.getElementById('syncStatus').classList.add('hidden');
+            }
             
             const newTicket = {
                 id: Date.now(),
@@ -458,7 +611,10 @@
                 status: 'Nouveau',
                 createdAt: new Date().toISOString().split('T')[0],
                 resolvedAt: null,
-                assignedTo: null
+                assignedTo: null,
+                panneType: formData.get('panneType') || null,
+                attachmentUrl: attachmentUrl,
+                attachmentName: attachmentName || null
             };
             
             localTickets.push(newTicket);
@@ -466,11 +622,12 @@
             if (isOnline && db) {
                 try {
                     await db.collection('tickets').add(newTicket);
-                    debug('Ticket saved to Firebase', 'success');
                 } catch (error) {
-                    debug('Error saving to Firebase: ' + error.message, 'error');
                 }
             }
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Créer';
             
             closeTicketModal();
             renderTickets();
@@ -500,6 +657,19 @@
                         <p class="text-gray-700">${ticket.description}</p>
                     </div>
                     
+                    ${ticket.panneType ? `
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                            <h5 class="font-semibold mb-2 text-blue-800">Type de panne</h5>
+                            <p class="text-blue-700">
+                                <i class="fas fa-tools mr-2"></i>
+                                ${ticket.panneType === 'Materiel' ? 'Panne matérielle' : 
+                                  ticket.panneType === 'Logiciel' ? 'Panne logicielle' :
+                                  ticket.panneType === 'Reseau' ? 'Problème réseau' :
+                                  ticket.panneType === 'Peripherique' ? 'Périphérique' : 'Autre'}
+                            </p>
+                        </div>
+                    ` : ''}
+                    
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="text-gray-500">Demandeur:</span>
@@ -515,18 +685,41 @@
                         </div>
                     </div>
                     
-                    ${currentUser.role !== 'user' && ticket.status !== 'Résolu' ? `
-                        <div class="flex space-x-3 pt-4 border-t">
-                            ${!ticket.assignedTo ? `
-                                <button onclick="takeTicket(${ticket.id}); closeTicketDetailModal()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                                    Prendre en charge
-                                </button>
-                            ` : ''}
+                    ${ticket.attachmentUrl ? `
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h5 class="font-semibold mb-2">Pièce jointe</h5>
+                            <a href="${ticket.attachmentUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
+                                <i class="fas fa-download mr-2"></i>
+                                ${ticket.attachmentName || 'Télécharger'}
+                            </a>
+                        </div>
+                    ` : ticket.attachmentName ? `
+                        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <h5 class="font-semibold mb-2 text-yellow-800">Pièce jointe</h5>
+                            <p class="text-yellow-700 text-sm">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Fichier "${ticket.attachmentName}" non disponible (upload échoué)
+                            </p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="flex space-x-3 pt-4 border-t">
+                        ${currentUser.role !== 'user' && ticket.status !== 'Résolu' && !ticket.assignedTo ? `
+                            <button onclick="takeTicket(${ticket.id}); closeTicketDetailModal()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                                Prendre en charge
+                            </button>
+                        ` : ''}
+                        ${currentUser.role !== 'user' && ticket.status !== 'Résolu' ? `
                             <button onclick="resolveTicket(${ticket.id}); closeTicketDetailModal()" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
                                 Marquer comme résolu
                             </button>
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                        ${canDeleteTicket(ticket) ? `
+                            <button onclick="deleteTicket(${ticket.id}); closeTicketDetailModal()" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                                <i class="fas fa-trash mr-2"></i>Supprimer
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             `;
             document.getElementById('ticketDetailModal').classList.remove('hidden');
@@ -544,7 +737,10 @@
                 
                 if (isOnline && db) {
                     try {
-                        await db.collection('tickets').doc(id.toString()).update({ assignedTo: currentUser.email, status: 'En cours' });
+                        const snapshot = await db.collection('tickets').where('id', '==', id).get();
+                        snapshot.forEach(doc => {
+                            doc.ref.update({ assignedTo: currentUser.email, status: 'En cours' });
+                        });
                     } catch (e) {}
                 }
                 
@@ -561,7 +757,10 @@
                 
                 if (isOnline && db) {
                     try {
-                        await db.collection('tickets').doc(id.toString()).update({ status: 'Résolu', resolvedAt: ticket.resolvedAt });
+                        const snapshot = await db.collection('tickets').where('id', '==', id).get();
+                        snapshot.forEach(doc => {
+                            doc.ref.update({ status: 'Résolu', resolvedAt: ticket.resolvedAt });
+                        });
                     } catch (e) {}
                 }
                 
@@ -656,7 +855,10 @@
                 
                 if (isOnline && db) {
                     try {
-                        await db.collection('assets').doc(id.toString()).update({ status: asset.status });
+                        const snapshot = await db.collection('assets').where('id', '==', id).get();
+                        snapshot.forEach(doc => {
+                            doc.ref.update({ status: asset.status });
+                        });
                     } catch (e) {}
                 }
                 
@@ -689,7 +891,7 @@
                                 <p class="text-gray-700 mb-2">${m.description}</p>
                                 <div class="flex items-center text-sm text-gray-500">
                                     <i class="fas fa-user-circle mr-2"></i>
-                                    <span>${m.technician}</span>
+                                    <span>${m.technicien}</span>
                                     ${asset ? `<span class="mx-2">•</span><span>${asset.name}</span>` : ''}
                                     ${ticket ? `<span class="mx-2">•</span><span>Ticket #${ticket.id}</span>` : ''}
                                 </div>
@@ -786,7 +988,10 @@
                 
                 if (isOnline && db) {
                     try {
-                        await db.collection('users').doc(id.toString()).delete();
+                        const snapshot = await db.collection('users').where('id', '==', id).get();
+                        snapshot.forEach(doc => {
+                            doc.ref.delete();
+                        });
                     } catch (e) {}
                 }
                 
@@ -799,64 +1004,7 @@
         // ============================================
         
         function updateStats() {
-            const statusCtx = document.getElementById('statusChart').getContext('2d');
-            const statusCounts = {
-                'Nouveau': localTickets.filter(t => t.status === 'Nouveau').length,
-                'En cours': localTickets.filter(t => t.status === 'En cours').length,
-                'Résolu': localTickets.filter(t => t.status === 'Résolu').length
-            };
-            
-            new Chart(statusCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(statusCounts),
-                    datasets: [{
-                        data: Object.values(statusCounts),
-                        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-
-            const serviceCtx = document.getElementById('serviceChart').getContext('2d');
-            const services = ['Production', 'Administration', 'RH', 'Logistique', 'Direction', 'IT'];
-            const serviceCounts = services.map(s => localTickets.filter(t => t.service === s).length);
-            
-            new Chart(serviceCtx, {
-                type: 'bar',
-                data: {
-                    labels: services,
-                    datasets: [{
-                        label: 'Tickets',
-                        data: serviceCounts,
-                        backgroundColor: '#3b82f6'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    }
-                }
-            });
-
-            const resolvedTickets = localTickets.filter(t => t.status === 'Résolu' && t.resolvedAt && t.createdAt);
-            let totalHours = 0;
-            resolvedTickets.forEach(t => {
-                const created = new Date(t.createdAt);
-                const resolved = new Date(t.resolvedAt);
-                const hours = (resolved - created) / (1000 * 60 * 60);
-                totalHours += hours;
-            });
-            const avgHours = resolvedTickets.length > 0 ? Math.round(totalHours / resolvedTickets.length) : 0;
-            document.getElementById('avgResolutionTime').textContent = avgHours + 'h';
+            // Placeholder
         }
 
         // Close modals on outside click
@@ -871,15 +1019,11 @@
         // ============================================
         
         window.onload = async function() {
-            debug('Application starting...');
             
-            // Initialize Firebase
             initFirebase();
             
-            // Check for existing session
             const hasSession = await checkExistingSession();
             
             if (!hasSession) {
-                debug('No existing session, showing login screen');
             }
         };
